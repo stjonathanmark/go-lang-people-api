@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+  db-server:
+    container_name: mssql-server
+    image: mcr.microsoft.com/mssql/server:2017-latest
+    ports:
+      - 1433:1433
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Password1!
+    volumes:
+      - ./sql/:/scripts/
+      - db-data:/data/db
+    command:
+      - /bin/bash
+      - -c 
+      - |
+        # Launch MSSQL and send to background
+        /opt/mssql/bin/sqlservr &
+        # Wait for it to be available
+        echo "Waiting for MS SQL to be available ⏳"
+        /opt/mssql-tools/bin/sqlcmd -l 30 -S localhost -h-1 -V1 -U sa -P $$SA_PASSWORD -Q "SET NOCOUNT ON SELECT \"YAY WE ARE UP\" , @@servername"
+        is_up=$$?
+        while [ $$is_up -ne 0 ] ; do 
+          echo -e $$(date) 
+          /opt/mssql-tools/bin/sqlcmd -l 30 -S localhost -h-1 -V1 -U sa -P $$SA_PASSWORD -Q "SET NOCOUNT ON SELECT \"YAY WE ARE UP\" , @@servername"
+          is_up=$$?
+          sleep 5 
+        done
+        # Run every script in /scripts
+        # TODO set a flag so that this is only done once on creation, 
+        #      and not every time the container runs
+        for foo in /scripts/*.sql
+          do /opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -l 30 -e -i $$foo
+        done
+        # So that the container doesn't shut down, sleep this thread
+        sleep infinity
+  web-server:
+    container_name: golang-people-api
+    image: golang-web-server
+    build: .
+    ports: 
+      - 3000:3000
+    environment:
+      - PORT=3000
+      - MSSQL_CONN_STRING=sqlserver://sa:Password1!@db-server?database=ApiData
+      - MAX_DB_CONN_ATTEMPTS=3
+      - SECONDS_BTW_DB_CONN_ATTEMPTS=60
+    depends_on:
+      - db-server
+      
+volumes:
+  db-data:
+    driver: local
