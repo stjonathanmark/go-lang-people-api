@@ -2,9 +2,9 @@
 Golang demo API that does CRUD operations for a simple **Person** model using MS SQL Server as the database. 
 
 ### Third Party Modules
-1. github.com/gorilla/mux v1.8.0
-2. gorm.io/driver/sqlserver v1.0.7
-3. gorm.io/gorm v1.21.6
+1. [github.com/gorilla/mux](https://github.com/gorilla/mux) v1.8.0
+2. [gorm.io/driver/sqlserver](https://github.com/go-gorm/sqlserver) v1.0.7
+3. [gorm.io/gorm](https://github.com/go-gorm) v1.21.6
 
 ### Person Model
 ```golang

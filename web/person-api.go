@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,94 +12,106 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetPersons(db *data.DataSource) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+var db = data.NewDataSource()
 
-		pageNumber := getIntQueryParam(r, "pageNumber")
-		pageSize := getIntQueryParam(r, "pageSize")
+func GetPersons(w http.ResponseWriter, r *http.Request) {
+	pageNumber := getIntQueryParam(r, "pageNumber")
+	pageSize := getIntQueryParam(r, "pageSize")
 
-		if pageNumber == 0 && pageSize > 0 {
-			pageSize = 0
-		}
-
-		persons, err := db.GetPersons(Offset(pageNumber, pageSize), pageSize)
-		HandleError(w, err, "API - Get Persons Error ", http.StatusInternalServerError)
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(persons)
+	if pageNumber == 0 && pageSize > 0 {
+		pageSize = 0
 	}
+
+	persons, err := db.GetPersons(Offset(pageNumber, pageSize), pageSize)
+	if HandleError(w, err, "API - Get Persons Error - ", http.StatusInternalServerError) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(persons)
 }
 
-func GetPerson(db *data.DataSource) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+func GetPerson(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
-		id, parseErr := strconv.ParseInt(params["id"], 0, 64)
-		HandleError(w, parseErr, "API - Invalid Parameter Data Type Error ", http.StatusBadRequest)
-
-		person, dataErr := db.GetPerson(id)
-		HandleError(w, dataErr, "API - Get Person Error ", http.StatusInternalServerError)
-
-		if person.Id != id {
-			HandleError(w, Error{"Person Not Found"}, "API - Person Not Found", http.StatusNotFound)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(person)
+	id, parseErr := strconv.ParseInt(params["id"], 0, 64)
+	if HandleError(w, parseErr, "API - Invalid Parameter Data Type Error - ", http.StatusBadRequest) {
+		return
 	}
+
+	person, dataErr := db.GetPerson(id)
+
+	if dataErr != nil && person.Id != id {
+		HandleError(w, Error{fmt.Sprintf("Person record with id \"%v\" does not exist in database.", id)}, "API - Person Not Found - ", http.StatusNotFound)
+		return
+	} else if dataErr != nil {
+		HandleError(w, dataErr, "API - Get Person Error - ", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(person)
 }
 
-func CreatePerson(db *data.DataSource) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var person models.Person
+func CreatePerson(w http.ResponseWriter, r *http.Request) {
+	var person models.Person
 
-		decodeErr := json.NewDecoder(r.Body).Decode(&person)
-		HandleError(w, decodeErr, "API - Invalid Json Format/Model Error ", http.StatusBadRequest)
-
-		createErr := db.CreatePerson(&person)
-		HandleError(w, createErr, "API - Create Person Error ", http.StatusInternalServerError)
-
-		w.WriteHeader(http.StatusCreated)
+	decodeErr := json.NewDecoder(r.Body).Decode(&person)
+	if HandleError(w, decodeErr, "API - Invalid Json Format/Model Error - ", http.StatusBadRequest) {
+		return
 	}
+
+	createErr := db.CreatePerson(&person)
+	if HandleError(w, createErr, "API - Create Person Error - ", http.StatusInternalServerError) {
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
-func UpdatePerson(db *data.DataSource) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		var person models.Person
+func UpdatePerson(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var person models.Person
 
-		id, parseErr := strconv.ParseInt(params["id"], 0, 64)
-		HandleError(w, parseErr, "API - Invalid Parameter(id) Data Type Error ", http.StatusBadRequest)
-
-		decodeErr := json.NewDecoder(r.Body).Decode(&person)
-		HandleError(w, decodeErr, "API - Invalid Json Format/Model Error ", http.StatusBadRequest)
-
-		person.Id = id
-		updateErr := db.UpdatePerson(&person)
-		HandleError(w, updateErr, "API - Update Person Error ", http.StatusInternalServerError)
-
-		w.WriteHeader(http.StatusNoContent)
+	id, parseErr := strconv.ParseInt(params["id"], 0, 64)
+	if HandleError(w, parseErr, "API - Invalid Parameter(id) Data Type Error - ", http.StatusBadRequest) {
+		return
 	}
+
+	decodeErr := json.NewDecoder(r.Body).Decode(&person)
+	if HandleError(w, decodeErr, "API - Invalid Json Format/Model Error - ", http.StatusBadRequest) {
+		return
+	}
+
+	person.Id = id
+	updateErr := db.UpdatePerson(&person)
+	if HandleError(w, updateErr, "API - Update Person Error - ", http.StatusInternalServerError) {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func DeletePerson(db *data.DataSource) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+func DeletePerson(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
-		id, parseErr := strconv.ParseInt(params["id"], 0, 64)
-		HandleError(w, parseErr, "API - Invalid Parameter(id) Data Type Error ", http.StatusBadRequest)
-
-		deleteErr := db.DeletePerson(id)
-		HandleError(w, deleteErr, "API - Delete Person Error ", http.StatusInternalServerError)
-
-		w.WriteHeader(http.StatusNoContent)
+	id, parseErr := strconv.ParseInt(params["id"], 0, 64)
+	if HandleError(w, parseErr, "API - Invalid Parameter(id) Data Type Error - ", http.StatusBadRequest) {
+		return
 	}
+
+	deleteErr := db.DeletePerson(id)
+	if HandleError(w, deleteErr, "API - Delete Person Error - ", http.StatusInternalServerError) {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func AddPersonHandlers(router *mux.Router, db *data.DataSource) {
-	router.HandleFunc("/api/person", GetPersons(db)).Methods("GET")
-	router.HandleFunc("/api/person/{id}", GetPerson(db)).Methods("GET")
-	router.HandleFunc("/api/person", CreatePerson(db)).Methods("POST")
-	router.HandleFunc("/api/person/{id}", UpdatePerson(db)).Methods("PUT")
-	router.HandleFunc("/api/person/{id}", DeletePerson(db)).Methods("DELETE")
+func AddPersonHandlers(router *mux.Router) {
+	router.HandleFunc("/api/person", GetPersons).Methods("GET")
+	router.HandleFunc("/api/person/{id}", GetPerson).Methods("GET")
+	router.HandleFunc("/api/person", CreatePerson).Methods("POST")
+	router.HandleFunc("/api/person/{id}", UpdatePerson).Methods("PUT")
+	router.HandleFunc("/api/person/{id}", DeletePerson).Methods("DELETE")
 }

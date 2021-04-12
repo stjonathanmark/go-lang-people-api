@@ -6,11 +6,13 @@ import (
 	"strconv"
 )
 
-func HandleError(w http.ResponseWriter, err error, message string, httpStatus int) {
+func HandleError(w http.ResponseWriter, err error, message string, httpStatus int) (hasError bool) {
 	if err != nil {
 		w.WriteHeader(httpStatus)
 		fmt.Fprint(w, message, err)
+		hasError = true
 	}
+	return
 }
 
 func Offset(pageNumber int, pageSize int) (offset int) {

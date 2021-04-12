@@ -16,12 +16,12 @@ type PersonSource struct {
 
 func (s *PersonSource) GetPersons(offset, limit int) (persons []models.Person, err error) {
 	s.ItemCount = 0
-	s.Model(&models.Person{}).Where("Deleted = ?", 0).Count(&s.ItemCount)
+	s.Model(&models.Person{}).Where("Deleted = ?", false).Count(&s.ItemCount)
 	if limit == 0 {
 		limit = int(s.ItemCount)
 	}
 
-	result := s.Offset(offset).Limit(limit).Find(&persons)
+	result := s.Where("Deleted = ?", false).Offset(offset).Limit(limit).Find(&persons)
 
 	if result.Error != nil {
 		err = result.Error
@@ -31,7 +31,7 @@ func (s *PersonSource) GetPersons(offset, limit int) (persons []models.Person, e
 }
 
 func (s *PersonSource) GetPerson(id int64) (person models.Person, err error) {
-	result := s.First(&person, id)
+	result := s.Where("Deleted = ?", 0).First(&person, id)
 
 	if result.Error != nil {
 		err = result.Error

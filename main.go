@@ -5,19 +5,15 @@ import (
 	"net/http"
 	"os"
 
-	"stjonathanmark.com/people/data"
 	"stjonathanmark.com/people/web"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	connStr := os.Getenv("MSSQL_CONN_STRING")
-	db := data.NewDataSource(connStr)
-
 	router := mux.NewRouter()
 
-	web.AddPersonHandlers(router, db)
+	web.AddPersonHandlers(router)
 
 	port := os.Getenv("PORT")
 	err := http.ListenAndServe(":"+port, router)

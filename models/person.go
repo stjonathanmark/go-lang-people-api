@@ -4,7 +4,7 @@ type Person struct {
 	Id         int64  `gorm:"primaryKey;autoIncrement;column:Id" json:"id"`
 	Deleted    bool   `gorm:"type:bit;not null;default:0;column:Deleted" json:"deleted"`
 	FirstName  string `gorm:"type:nvarchar(50);not null;column:FirstName" json:"firstName"`
-	MiddleName string `gorm:"type:nvarchar(50);column:MiddleName" json:"middleName"`
+	MiddleName string `gorm:"type:nvarchar(50);column:MiddleName" json:"middleName,omitempty"`
 	LastName   string `gorm:"type:nvarchar(50);not null;column:LastName" json:"lastName"`
 }
 
